@@ -29,8 +29,18 @@ while [ "$#" -gt 0 ]; do
 done
 
 repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+if [ -z "$spec" ]; then
+    spec="linuxcampam.spec"
+fi
 if [ "${spec#/}" = "$spec" ]; then
     spec="${repo_root}/${spec}"
+fi
+if [ -d "$spec" ]; then
+    spec="${spec}/linuxcampam.spec"
+fi
+if [ ! -f "$spec" ]; then
+    echo "Spec file not found: $spec" >&2
+    exit 1
 fi
 
 download() {
