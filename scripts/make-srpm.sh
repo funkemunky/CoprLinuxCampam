@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 repo="Vladush/LinuxCamPAM"
 api_latest="https://api.github.com/repos/${repo}/releases/latest"
@@ -28,14 +28,14 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 if [ "${spec#/}" = "$spec" ]; then
     spec="${repo_root}/${spec}"
 fi
 
 download() {
-    local url="$1"
-    local destination="$2"
+    url="$1"
+    destination="$2"
     mkdir -p "$(dirname "$destination")"
     curl -fL --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 600 \
         -A "linuxcampam-copr-srpm" \
@@ -55,13 +55,16 @@ if [ -z "$tag" ]; then
 fi
 
 archive_version="${tag#v}"
-if [[ "$archive_version" == *-* ]]; then
-    upstream_version="${archive_version%-*}"
-    upstream_release="${archive_version##*-}"
-else
-    upstream_version="$archive_version"
-    upstream_release="1"
-fi
+case "$archive_version" in
+    *-*)
+        upstream_version="${archive_version%-*}"
+        upstream_release="${archive_version##*-}"
+        ;;
+    *)
+        upstream_version="$archive_version"
+        upstream_release="1"
+        ;;
+esac
 
 if ! printf '%s\n' "$upstream_version" | grep -Eq '^[A-Za-z0-9._+~]+$'; then
     echo "Invalid RPM Version derived from tag ${tag}: ${upstream_version}" >&2
@@ -72,10 +75,21 @@ if ! printf '%s\n' "$upstream_release" | grep -Eq '^[A-Za-z0-9._+~]+$'; then
     exit 1
 fi
 
-topdir="${repo_root}/.build/rpmbuild"
+topdir="$(mktemp -d)"
+cleanup() {
+    rm -rf "$topdir"
+}
+trap cleanup EXIT INT TERM
+
 sources="${topdir}/SOURCES"
 srpms="${topdir}/SRPMS"
-mkdir -p "${topdir}"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+mkdir -p \
+    "${topdir}/BUILD" \
+    "${topdir}/BUILDROOT" \
+    "${topdir}/RPMS" \
+    "${topdir}/SOURCES" \
+    "${topdir}/SPECS" \
+    "${topdir}/SRPMS"
 
 download \
     "https://github.com/${repo}/archive/refs/tags/${tag}.tar.gz" \
@@ -94,7 +108,7 @@ rpmbuild -bs "$spec" \
     --define "upstream_version ${upstream_version}" \
     --define "upstream_release ${upstream_release}"
 
-latest_srpm="$(find "$srpms" -maxdepth 1 -name '*.src.rpm' -type f -printf '%T@ %p\n' | sort -n | tail -n 1 | cut -d ' ' -f 2-)"
+latest_srpm="$(find "$srpms" -maxdepth 1 -name '*.src.rpm' -type f | sort | tail -n 1)"
 if [ -z "$latest_srpm" ]; then
     echo "rpmbuild did not produce a source RPM" >&2
     exit 1
@@ -104,4 +118,3 @@ mkdir -p "$output_dir"
 cp -p "$latest_srpm" "$output_dir/"
 echo "Built ${output_dir}/$(basename "$latest_srpm")"
 echo "Upstream release: ${tag}"
-
