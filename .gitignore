@@ -1,0 +1,7 @@
+/.build/
+/build/
+/resultdir/
+/*.src.rpm
+
+/.idea/
+*.iml

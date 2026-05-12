@@ -1,0 +1,111 @@
+%global upstream_tag %{?upstream_tag}%{!?upstream_tag:v0.9.7.2-2}
+%global upstream_version %{?upstream_version}%{!?upstream_version:0.9.7.2}
+%global upstream_release %{?upstream_release}%{!?upstream_release:2}
+%global archive_version %{?archive_version}%{!?archive_version:0.9.7.2-2}
+
+Name:           linuxcampam
+Version:        %{upstream_version}
+Release:        %{upstream_release}%{?dist}
+Summary:        Face authentication PAM module using OpenCV DNN
+
+License:        MIT
+URL:            https://github.com/Vladush/LinuxCamPAM
+Source0:        LinuxCamPAM-%{archive_version}.tar.gz
+Source1:        face_detection_yunet_2023mar.onnx
+Source2:        face_recognition_sface_2021dec.onnx
+
+BuildRequires:  cmake
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  opencv-devel
+BuildRequires:  pam-devel
+BuildRequires:  gtest-devel
+BuildRequires:  gmock-devel
+BuildRequires:  pandoc-cli
+BuildRequires:  systemd-rpm-macros
+
+Requires:       pam
+Requires:       v4l-utils
+Recommends:     mesa-libOpenCL
+
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
+
+%description
+LinuxCamPAM provides webcam-based face authentication through a PAM module,
+a root authentication daemon, and a command-line enrollment tool. It uses
+OpenCV DNN with YuNet and SFace models and can use OpenCL acceleration when
+the host has a working OpenCL stack.
+
+This Fedora package does not automatically modify the system PAM stack. After
+installation, enable the module in the specific PAM service files you want to
+protect, then enroll users with linuxcampam.
+
+%prep
+%autosetup -n LinuxCamPAM-%{archive_version}
+mkdir -p models
+cp -p %{SOURCE1} models/face_detection_yunet_2023mar.onnx
+cp -p %{SOURCE2} models/face_recognition_sface_2021dec.onnx
+
+%build
+%cmake -DCMAKE_BUILD_TYPE=Release
+%cmake_build
+
+%install
+%cmake_install
+
+# Upstream installs a Debian pam-auth-update profile; Fedora does not use it.
+rm -rf %{buildroot}%{_datadir}/pam-configs
+
+# The upstream CMake file installs the unit under /lib. Move it into Fedora's
+# canonical unit directory so systemd scriptlets and file ownership are correct.
+if [ -f %{buildroot}/lib/systemd/system/linuxcampam.service ]; then
+    mkdir -p %{buildroot}%{_unitdir}
+    mv %{buildroot}/lib/systemd/system/linuxcampam.service %{buildroot}%{_unitdir}/linuxcampam.service
+fi
+rmdir --ignore-fail-on-non-empty %{buildroot}/lib/systemd/system %{buildroot}/lib/systemd %{buildroot}/lib || :
+
+mkdir -p %{buildroot}%{_sysconfdir}/linuxcampam/users
+chmod 0700 %{buildroot}%{_sysconfdir}/linuxcampam/users
+
+%check
+%ctest
+
+%post
+%systemd_post linuxcampam.service
+mkdir -p %{_sysconfdir}/linuxcampam/users
+chmod 0700 %{_sysconfdir}/linuxcampam/users
+rm -rf /root/.cache/opencv || :
+
+%preun
+%systemd_preun linuxcampam.service
+
+%postun
+%systemd_postun_with_restart linuxcampam.service
+
+%files
+%license LICENSE
+%doc README.md CHANGELOG.md docs/CONFIGURATION.md docs/DEBUGGING.md docs/SECURITY_ASSESSMENT.md docs/USER_FLOWS.md
+%{_bindir}/linuxcampam
+%{_bindir}/linuxcampamd
+%{_bindir}/check_opencl
+%{_bindir}/detect_opencl.sh
+%{_bindir}/linuxcampam-setup-config
+%{_libdir}/security/pam_linuxcampam.so
+%{_unitdir}/linuxcampam.service
+%dir %{_sysconfdir}/linuxcampam
+%dir %attr(0700,root,root) %{_sysconfdir}/linuxcampam/users
+%config(noreplace) %{_sysconfdir}/linuxcampam/config.ini
+%dir %{_datadir}/linuxcampam
+%dir %{_datadir}/linuxcampam/models
+%{_datadir}/linuxcampam/models/face_detection_yunet_2023mar.onnx
+%{_datadir}/linuxcampam/models/face_recognition_sface_2021dec.onnx
+%{_mandir}/man1/linuxcampam.1*
+%{_mandir}/man5/linuxcampam.conf.5*
+%{_mandir}/man8/linuxcampamd.8*
+%{_mandir}/man8/pam_linuxcampam.8*
+
+%changelog
+* Tue May 12 2026 Dawson Hessler <dawson@example.invalid> - 0.9.7.2-2
+- Package upstream LinuxCamPAM release for Fedora COPR.
