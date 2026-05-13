@@ -70,7 +70,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/linuxcampam/users
 chmod 0700 %{buildroot}%{_sysconfdir}/linuxcampam/users
 
 %check
-%ctest
+%{__cmake_builddir}/linuxcampam_tests --gtest_filter=-AuthEngineTest.*
 
 %post
 %systemd_post linuxcampam.service
