@@ -1,7 +1,7 @@
-%global upstream_tag %{?upstream_tag}%{!?upstream_tag:v0.9.7.2-2}
-%global upstream_version %{?upstream_version}%{!?upstream_version:0.9.7.2}
+%global upstream_tag %{?upstream_tag}%{!?upstream_tag:v0.9.7.4}
+%global upstream_version %{?upstream_version}%{!?upstream_version:0.9.7.4}
 %global upstream_release %{?upstream_release}%{!?upstream_release:2}
-%global archive_version %{?archive_version}%{!?archive_version:0.9.7.2-2}
+%global archive_version %{?archive_version}%{!?archive_version:0.9.7.4}
 
 Name:           linuxcampam
 Version:        %{upstream_version}
