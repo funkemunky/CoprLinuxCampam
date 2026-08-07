@@ -86,7 +86,7 @@ rm -rf /root/.cache/opencv || :
 
 %files
 %license LICENSE
-%doc README.md CHANGELOG.md docs/CONFIGURATION.md docs/DEBUGGING.md docs/SECURITY_ASSESSMENT.md docs/USER_FLOWS.md
+%doc README.md CHANGELOG.md docs/ARCHITECTURE.md docs/CONFIGURATION.md docs/DEBUGGING.md docs/IR_CAMERA_TROUBLESHOOTING.md docs/THREAT_MODEL_AND_RISK_ASSESSMENT.md docs/USER_FLOWS.md
 %{_bindir}/linuxcampam
 %{_bindir}/linuxcampamd
 %{_bindir}/check_opencl
