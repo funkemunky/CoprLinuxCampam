@@ -2,6 +2,9 @@
 /build/
 /resultdir/
 /*.src.rpm
+/*.tar.gz
+/*.onnx
 
 /.idea/
 *.iml
+

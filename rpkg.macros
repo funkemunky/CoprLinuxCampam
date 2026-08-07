@@ -36,19 +36,27 @@ function fetch_sources {
     local tag
     tag="$(get_latest_tag)"
     local version="${tag#v}"
+    local target_dir="${OUTDIR:-.}"
 
-    if [ ! -f "LinuxCamPAM-${version}.tar.gz" ]; then
-        curl -fL --retry 3 --connect-timeout 30 -o "LinuxCamPAM-${version}.tar.gz" \
+    if [ ! -f "${target_dir}/LinuxCamPAM-${version}.tar.gz" ] && [ ! -f "LinuxCamPAM-${version}.tar.gz" ]; then
+        curl -fL --retry 3 --connect-timeout 30 -o "${target_dir}/LinuxCamPAM-${version}.tar.gz" \
             "https://github.com/Vladush/LinuxCamPAM/archive/refs/tags/${tag}.tar.gz"
     fi
 
-    if [ ! -f "face_detection_yunet_2023mar.onnx" ]; then
-        curl -fL --retry 3 --connect-timeout 30 -o "face_detection_yunet_2023mar.onnx" \
+    if [ ! -f "${target_dir}/face_detection_yunet_2023mar.onnx" ] && [ ! -f "face_detection_yunet_2023mar.onnx" ]; then
+        curl -fL --retry 3 --connect-timeout 30 -o "${target_dir}/face_detection_yunet_2023mar.onnx" \
             "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
     fi
 
-    if [ ! -f "face_recognition_sface_2021dec.onnx" ]; then
-        curl -fL --retry 3 --connect-timeout 30 -o "face_recognition_sface_2021dec.onnx" \
+    if [ ! -f "${target_dir}/face_recognition_sface_2021dec.onnx" ] && [ ! -f "face_recognition_sface_2021dec.onnx" ]; then
+        curl -fL --retry 3 --connect-timeout 30 -o "${target_dir}/face_recognition_sface_2021dec.onnx" \
             "https://huggingface.co/opencv/face_recognition_sface/resolve/main/face_recognition_sface_2021dec.onnx"
     fi
+
+    if [ "$target_dir" != "." ] && [ "$target_dir" != "$PWD" ]; then
+        [ -f "${target_dir}/LinuxCamPAM-${version}.tar.gz" ] && [ ! -f "LinuxCamPAM-${version}.tar.gz" ] && cp -p "${target_dir}/LinuxCamPAM-${version}.tar.gz" . || true
+        [ -f "${target_dir}/face_detection_yunet_2023mar.onnx" ] && [ ! -f "face_detection_yunet_2023mar.onnx" ] && cp -p "${target_dir}/face_detection_yunet_2023mar.onnx" . || true
+        [ -f "${target_dir}/face_recognition_sface_2021dec.onnx" ] && [ ! -f "face_recognition_sface_2021dec.onnx" ] && cp -p "${target_dir}/face_recognition_sface_2021dec.onnx" . || true
+    fi
 }
+
