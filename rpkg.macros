@@ -1,0 +1,54 @@
+function get_latest_tag {
+    local repo="Vladush/LinuxCamPAM"
+    local api_latest="https://api.github.com/repos/${repo}/releases/latest"
+    local release_json
+    release_json="$(curl -fsSL --retry 3 --connect-timeout 30 -A "linuxcampam-copr-rpkg" "$api_latest" 2>/dev/null)"
+    local tag
+    tag="$(printf '%s\n' "$release_json" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+    if [ -z "$tag" ]; then
+        tag="v0.9.7.4"
+    fi
+    echo "$tag"
+}
+
+function get_version {
+    local tag
+    tag="$(get_latest_tag)"
+    local version="${tag#v}"
+    echo "${version%-*}"
+}
+
+function get_release {
+    local tag
+    tag="$(get_latest_tag)"
+    local version="${tag#v}"
+    case "$version" in
+        *-*)
+            echo "${version##*-}"
+            ;;
+        *)
+            echo "1"
+            ;;
+    esac
+}
+
+function fetch_sources {
+    local tag
+    tag="$(get_latest_tag)"
+    local version="${tag#v}"
+
+    if [ ! -f "LinuxCamPAM-${version}.tar.gz" ]; then
+        curl -fL --retry 3 --connect-timeout 30 -o "LinuxCamPAM-${version}.tar.gz" \
+            "https://github.com/Vladush/LinuxCamPAM/archive/refs/tags/${tag}.tar.gz"
+    fi
+
+    if [ ! -f "face_detection_yunet_2023mar.onnx" ]; then
+        curl -fL --retry 3 --connect-timeout 30 -o "face_detection_yunet_2023mar.onnx" \
+            "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+    fi
+
+    if [ ! -f "face_recognition_sface_2021dec.onnx" ]; then
+        curl -fL --retry 3 --connect-timeout 30 -o "face_recognition_sface_2021dec.onnx" \
+            "https://huggingface.co/opencv/face_recognition_sface/resolve/main/face_recognition_sface_2021dec.onnx"
+    fi
+}
